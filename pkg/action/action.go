@@ -220,9 +220,25 @@ func (cfg *Configuration) renderResources(ch *chart.Chart, values chartutil.Valu
 		if err != nil {
 			return hs, b, notes, errors.Wrap(err, "error while running post render on files")
 		}
+
+		err = postRenderHookManifests(hs, pr)
+		if err != nil {
+			return hs, b, notes, err
+		}
 	}
 
 	return hs, b, notes, nil
+}
+
+func postRenderHookManifests(hs []*release.Hook, pr postrender.PostRenderer) error {
+	for _, hook := range hs {
+		sb, err := pr.Run(bytes.NewBufferString(hook.Manifest))
+		if err != nil {
+			return errors.Wrapf(err, "error while running post render on hooks: %s manifest", hook.Name)
+		}
+		hook.Manifest = sb.String()
+	}
+	return nil
 }
 
 // RESTClientGetter gets the rest client
